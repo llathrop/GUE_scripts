@@ -1,0 +1,38 @@
+name: CI - tests
+# Simple, easy-to-remove CI workflow that runs pytest on push and PR.
+# To disable or remove CI, delete this file or the .github/workflows folder.
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      # Test against a small matrix of Python versions used in this repo
+      matrix:
+        python-version: [3.11, 3.12]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        # Keep this step intentionally simple. The workflow will look for a
+        # top-level requirements.txt and install from it. If you prefer a
+        # different install command, change/remove this step.
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run tests
+        run: |
+          # Run the project's pytest suite. Adjust the flags as desired.
+          pytest -q

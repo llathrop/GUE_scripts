@@ -1,0 +1,11 @@
+# Minimal runtime requirements for running the tests and notebook
+numpy>=1.25
+pandas>=2.2
+pytest>=7.0
+
+# Notebook / runtime extras (used by the Jupyter notebook)
+matplotlib>=3.8
+Pillow>=9.5
+ipython>=8.0
+notebook>=6.5
+nbclient>=0.8

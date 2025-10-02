@@ -1,0 +1,12 @@
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+*.pyo
+*.pyd
+*.csv
+.vscode/
+venv/
+.env
+env/
+__MACOSX/
+.DS_Store

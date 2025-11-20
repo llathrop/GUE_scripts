@@ -12,12 +12,12 @@ import math
 # Tank definitions used by tests and notebook helpers.
 tanks: Dict[str, Dict[str, int]] = {
     'AL80': {'rated_vol': 77, 'rated_PSI': 3000},
-    '2xAL80': {'rated_vol': 144, 'rated_PSI': 3000},
+    '2xAL80': {'rated_vol': 154, 'rated_PSI': 3000},
     # Additional tanks used by the notebook (approximate volumes and standard PSI)
     'AL40': {'rated_vol': 40, 'rated_PSI': 3000},
-    '2xLP85': {'rated_vol': 170, 'rated_PSI': 3000},
-    '2xHP100': {'rated_vol': 200, 'rated_PSI': 3000},
-    '2xHP133': {'rated_vol': 266, 'rated_PSI': 3000},
+    '2xLP85': {'rated_vol': 170, 'rated_PSI': 2640},
+    '2xHP100': {'rated_vol': 200, 'rated_PSI': 3442},
+    '2xHP133': {'rated_vol': 266, 'rated_PSI': 3442},
 }
 
 
@@ -55,18 +55,26 @@ def calcpGas(ata: float, f_gas: float) -> float:
     return ata * f_gas
 
 
-def calcATA(depth: float, water: str = 'fresh') -> float:
+def calcATA(depth: float, water: str = 'salt') -> float:
     """Return ATA at depth (rounded to 1 decimal).
 
-    Uses the simple rule: ATA = 1 + depth/33 (fresh water). The ``water``
-    parameter is accepted for compatibility but currently unused.
+    Formulae:
+      - Salt water: ATA = 1 + depth/33
+      - Fresh water: ATA = 1 + depth/34
+
+    Args:
+        depth: Depth in feet.
+        water: 'salt' (default) or 'fresh'.
     """
-    return round((depth / 33.0) + 1.0, 1)
+    divisor = 34.0 if water == 'fresh' else 33.0
+    return round((depth / divisor) + 1.0, 1)
 
 # Example:
 # >>> calcATA(0)
 # 1.0
-# >>> calcATA(33)
+# >>> calcATA(33, 'salt')
+# 2.0
+# >>> calcATA(34, 'fresh')
 # 2.0
 
 
@@ -234,10 +242,55 @@ def trimixPP(f_o2: float = 0.16, f_he: float = 0.40, p: float = 3000.0) -> None:
     print('fill with air')
 
 
+def calcMOD(f_o2: float, ppo2_limit: float = 1.4, water: str = 'salt') -> int:
+    """Calculate Maximum Operating Depth (MOD) in feet.
+
+    Formula: MOD = 33 * (PO2_limit / f_o2 - 1) for salt water.
+             MOD = 34 * (PO2_limit / f_o2 - 1) for fresh water.
+
+    Args:
+        f_o2: Fraction of Oxygen (e.g. 0.32).
+        ppo2_limit: PPO2 limit in ATA (default 1.4).
+        water: 'salt' or 'fresh'.
+    """
+    if f_o2 <= 0:
+        return 0
+    factor = 34.0 if water == 'fresh' else 33.0
+    ata = ppo2_limit / f_o2
+    return int((ata - 1.0) * factor)
+
+
+def calcEND(depth: float, f_he: float, water: str = 'salt') -> int:
+    """Calculate Equivalent Narcotic Depth (END) in feet.
+
+    Formula: END = (Depth + 33) * (1 - f_he) - 33.
+    Treats O2 as narcotic (standard GUE approach).
+    """
+    factor = 34.0 if water == 'fresh' else 33.0
+    ata = (depth / factor) + 1.0
+    # Effective narcotic ATA = Total ATA * (1 - Fraction of Helium)
+    # Since (1 - He) = N2 + O2.
+    narcotic_ata = ata * (1.0 - f_he)
+    return int((narcotic_ata - 1.0) * factor)
+
+
+def calcEAD(depth: float, f_o2: float, water: str = 'salt') -> int:
+    """Calculate Equivalent Air Depth (EAD) in feet.
+
+    Formula: EAD = ((Depth + 33) / 33) * (f_n2 / 0.79) * 33 - 33.
+             Simplified: (ATA * (1 - f_o2) / 0.79 - 1) * 33.
+    """
+    factor = 34.0 if water == 'fresh' else 33.0
+    ata = (depth / factor) + 1.0
+    f_n2 = 1.0 - f_o2
+    ead_ata = ata * (f_n2 / 0.79)
+    return int((ead_ata - 1.0) * factor)
+
 
 __all__ = [
     'tanks', 'calcpTot', 'calcpGas', 'calcATA', 'calcPPO2', 'calcTimeToStop', 'calcMG',
-    'calcTF', 'calcPSI', 'trimix_PO2', 'trimix_P_He', 'nitrox_p', 'nitrox_FO2'
+    'calcTF', 'calcPSI', 'trimix_PO2', 'trimix_P_He', 'nitrox_p', 'nitrox_FO2',
+    'calcMOD', 'calcEND', 'calcEAD'
 ]
 
 

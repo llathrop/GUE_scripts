@@ -91,9 +91,17 @@ def calcPPO2(depth: float = 0, percent_O2: float = 0.21) -> float:
 def calcTimeToStop(depth: float, gas_switch_depth: float = 0) -> int:
     """Estimate minutes required to ascend (or to a gas switch).
 
-    Simple heuristic used in the notebook:
-    - If a gas_switch_depth is provided (>0), estimate based on that depth.
-    - Otherwise estimate from the current depth.
+    Uses the standard GUE Minimum Gas planning heuristic:
+    - Ascent rate: 10 ft/min (conservative average to account for stress/sharing).
+    - Initial delay: +1 minute to solve the problem.
+    - Gas switch: +1 additional minute (implied if gas_switch_depth > 0).
+
+    Args:
+        depth: Current depth in feet.
+        gas_switch_depth: Depth of the gas switch in feet (default 0 for surface).
+
+    Returns:
+        Total minutes (integer) for the ascent.
     """
     if gas_switch_depth > 0:
         return int(((depth - gas_switch_depth) / 10.0) + 2)
